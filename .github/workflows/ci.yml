@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        run: PYTHONPATH=src python -m unittest discover -s tests -t . -v
+
+  package:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and install the wheel
+        run: |
+          python -m pip install build
+          python -m build
+          python -m pip install dist/*.whl
+      - name: Smoke test the installed CLI
+        run: |
+          cd "$RUNNER_TEMP"
+          aap --version
+          root=$(python -c "import sys; sys.path.insert(0, '$GITHUB_WORKSPACE'); from tests import fixtures; print(fixtures.make(fixtures.COMPOSE_HILT))")
+          android-agent-playbook install "$root"
+          test -f "$root/AGENTS.md"
+          test -f "$root/.agents/skills/add-screen/SKILL.md"
+          android-agent-playbook install "$root" | grep -q "19 unchanged"

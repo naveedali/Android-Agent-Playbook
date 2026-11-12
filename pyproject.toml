@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "android-agent-playbook"
+dynamic = ["version"]
+description = "Drop-in AI agent rules and commands for Android projects: Claude Code, Codex, Cursor and Copilot."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Naveed Ali" }]
+requires-python = ">=3.8"
+dependencies = []
+keywords = ["android", "kotlin", "jetpack-compose", "agents", "claude-code", "codex", "cursor", "copilot", "agents-md"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Code Generators",
+]
+
+[project.urls]
+Homepage = "https://github.com/naveedali/android-agent-playbook"
+Issues = "https://github.com/naveedali/android-agent-playbook/issues"
+
+[project.scripts]
+android-agent-playbook = "android_agent_playbook.cli:main"
+aap = "android_agent_playbook.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+android_agent_playbook = ["templates/*/*.md", "templates/*/*/*.md"]
+
+[tool.setuptools.dynamic]
+version = { attr = "android_agent_playbook.__version__" }
