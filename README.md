@@ -50,6 +50,8 @@ Then it writes these files with your project's real commands filled in:
 
 Pick agents with `--agents claude,codex,cursor,copilot` (default: all).
 
+See [`examples/`](examples/) for the generated files on a Compose + Hilt app, a legacy Views app and a KMP project.
+
 ### Playbooks and commands
 
 | Command | Does |

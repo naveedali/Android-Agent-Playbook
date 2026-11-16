@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- CI runs on `master` (and `main`), and checks that `examples/` is up to date
+- Release workflow: tag `v*` publishes to PyPI with trusted publishing and creates a GitHub release
+- `examples/` with generated output for each fixture project, via `scripts/generate_examples.py`
+
 ## 0.1.0 (unreleased)
 
 - `install`, `detect` and `uninstall` commands with marker-based, re-runnable injection, `--dry-run` and `--diff`
