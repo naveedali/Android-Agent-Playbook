@@ -10,6 +10,7 @@ wrappers are identical in every project, so they are not repeated here. See
 
 | Example | Project | Detected | Preset |
 | --- | --- | --- | --- |
-| [`compose-hilt`](compose-hilt/AGENTS.md) | Multi-module Compose app: Kotlin DSL, version catalog, convention plugins, Hilt, Room, ktlint | Kotlin DSL · 4 modules · Compose · Hilt · Room · version catalog · convention plugins | `compose` |
-| [`views-compose-groovy`](views-compose-groovy/AGENTS.md) | Legacy XML Views app adopting Compose: Groovy DSL, Koin, kapt, no version catalog | Groovy DSL · 2 modules · Compose · Views · Koin | `views-compose` |
+| [`compose-hilt`](compose-hilt/AGENTS.md) | Multi-module Compose app: Kotlin DSL, version catalog, convention plugins, Hilt, Room, ktlint | Kotlin DSL · 4 modules · Compose · Hilt · Room · minSdk 26 · version catalog · convention plugins | `compose` |
+| [`compose-flavors`](compose-flavors/AGENTS.md) | Compose app with `dev`/`prod` product flavors and an unflavored library module | Kotlin DSL · 2 modules · Compose · variant devDebug · minSdk 24 | `compose` |
+| [`views-compose-groovy`](views-compose-groovy/AGENTS.md) | Legacy XML Views app adopting Compose: Groovy DSL, Koin, kapt, no version catalog | Groovy DSL · 2 modules · Compose · Views · Koin · minSdk 21 | `views-compose` |
 | [`kmp`](kmp/AGENTS.md) | Kotlin Multiplatform with Compose Multiplatform, Koin and SQLDelight | Kotlin DSL · 2 modules · KMP · Compose · Koin · SQLDelight · version catalog | `kmp` |

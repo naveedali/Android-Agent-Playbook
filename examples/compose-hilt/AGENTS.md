@@ -23,6 +23,8 @@ TODO: add one line per module describing what it owns, so agents put code in the
 - Async: Kotlin coroutines and Flow
 - Data: Room
 - Navigation: Navigation Compose
+- Android: minSdk 26, targetSdk 36, compileSdk 36. Guard APIs above minSdk with `Build.VERSION.SDK_INT` checks
+- Toolchain: Gradle 9.1.0, AGP 8.13.0, Kotlin 2.2.20, JDK 17, Compose BOM 2026.01.00
 - Build: Gradle Kotlin DSL, version catalog, convention plugins in `build-logic/`
 - Code generation: KSP
 - Tests: JUnit 4, MockK, Turbine, Compose UI test, coroutines-test

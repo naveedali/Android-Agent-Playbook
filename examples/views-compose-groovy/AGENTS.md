@@ -17,6 +17,8 @@ TODO: add one line per module describing what it owns, so agents put code in the
 
 - UI: Jetpack Compose + XML Views with View Binding
 - DI: Koin
+- Android: minSdk 21, targetSdk 34, compileSdk 34. Guard APIs above minSdk with `Build.VERSION.SDK_INT` checks
+- Toolchain: AGP 7.4.2, JDK 8
 - Build: Gradle Groovy DSL
 - Code generation: kapt
 - Tests: JUnit 4, Mockito

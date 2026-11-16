@@ -18,6 +18,8 @@ from tests import fixtures  # noqa: E402
 EXAMPLES = (
     ("compose-hilt", fixtures.COMPOSE_HILT,
      "Multi-module Compose app: Kotlin DSL, version catalog, convention plugins, Hilt, Room, ktlint"),
+    ("compose-flavors", fixtures.FLAVORED,
+     "Compose app with `dev`/`prod` product flavors and an unflavored library module"),
     ("views-compose-groovy", fixtures.VIEWS_COMPOSE_GROOVY,
      "Legacy XML Views app adopting Compose: Groovy DSL, Koin, kapt, no version catalog"),
     ("kmp", fixtures.KMP,

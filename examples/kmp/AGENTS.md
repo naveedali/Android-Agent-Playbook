@@ -20,6 +20,7 @@ TODO: add one line per module describing what it owns, so agents put code in the
 - DI: Koin
 - Async: Kotlin coroutines and Flow
 - Data: SQLDelight
+- Toolchain: AGP 8.13.0, Kotlin 2.2.0
 - Build: Gradle Kotlin DSL, version catalog
 - Tests: kotlin.test
 
@@ -31,7 +32,7 @@ Run Gradle from the repository root. Use module-scoped tasks while you iterate, 
 | --- | --- |
 | Build (debug) | `./gradlew :androidApp:assembleDebug` |
 | Unit tests | `./gradlew allTests` |
-| One module's tests | `./gradlew :shared:testDebugUnitTest` |
+| One module's tests | `./gradlew :shared:allTests` |
 | Lint | `./gradlew :androidApp:lintDebug` |
 | Instrumented tests (needs a device; only when asked) | `./gradlew :androidApp:connectedDebugAndroidTest` |
 | Dependencies of a module | `./gradlew :androidApp:dependencies --configuration debugRuntimeClasspath` |
