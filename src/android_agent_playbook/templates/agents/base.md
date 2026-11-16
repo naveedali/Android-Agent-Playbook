@@ -19,6 +19,8 @@ Run Gradle from the repository root. Use module-scoped tasks while you iterate, 
 
 {{COMMANDS}}
 
+{{VARIANTS_NOTE}}
+
 If a command fails, read the first error in the output, not the last line. Fix the cause and run it again. Do not stop with a broken build, and do not add `--offline`, `-x test`, `-x lint` or similar flags just to get past a failure.
 
 ## Architecture

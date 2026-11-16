@@ -160,6 +160,184 @@ LINT_PATTERNS = (
 )
 
 
+def _cap(name):
+    # type: (str) -> str
+    return name[:1].upper() + name[1:]
+
+
+def _braced(text, start):
+    # type: (str, int) -> Tuple[str, int]
+    """Return the body of the {...} block whose opening brace is at or after `start`."""
+    i = text.find("{", start)
+    if i < 0:
+        return "", start
+    depth, j = 1, i + 1
+    while j < len(text) and depth:
+        if text[j] == "{":
+            depth += 1
+        elif text[j] == "}":
+            depth -= 1
+        j += 1
+    return text[i + 1:j - 1], j
+
+
+FLAVOR_ENTRY = re.compile(
+    r"(?:\b(?:create|register|maybeCreate|getByName)\s*\(\s*[\"']([^\"']+)[\"']\s*\)"
+    r"|(?m:^[ \t]*([A-Za-z_]\w*)))\s*\{")
+NOT_FLAVORS = {"all", "configureEach", "forEach", "each", "named", "matching", "withType"}
+PREFERRED_FLAVORS = ("dev", "develop", "development", "demo", "staging", "stage", "qa", "internal", "mock")
+
+
+def parse_flavors(build_text):
+    # type: (str) -> Dict
+    """Return {"dimensions": [...], "flavors": [{"name", "dimension", "default"}], "variant": "devDebug"}."""
+    text = _strip_comments(build_text)
+    dimensions = []  # type: List[str]
+    for line in re.findall(r"flavorDimensions[^\n]*", text):
+        for d in re.findall(r"[\"']([^\"']+)[\"']", line):
+            if d not in dimensions:
+                dimensions.append(d)
+    flavors = []  # type: List[Dict]
+    m = re.search(r"\bproductFlavors\s*\{", text)
+    if m:
+        body, _ = _braced(text, m.start())
+        for entry in FLAVOR_ENTRY.finditer(body):
+            name = entry.group(1) or entry.group(2)
+            if name in NOT_FLAVORS or body[:entry.start()].count("{") != body[:entry.start()].count("}"):
+                continue
+            sub, _ = _braced(body, entry.end() - 1)
+            dim = re.search(r"dimension\s*[=(]?\s*[\"']([^\"']+)[\"']", sub)
+            default = re.search(r"isDefault\s*(?:=\s*true|\.set\(\s*true\s*\)|\(\s*true\s*\)|[ \t]+true)", sub)
+            flavors.append({"name": name, "dimension": dim.group(1) if dim else None,
+                            "default": bool(default)})
+    variant = "debug"
+    if flavors:
+        if not dimensions:
+            dimensions = []
+            for f in flavors:
+                if f["dimension"] not in dimensions:
+                    dimensions.append(f["dimension"])
+        chosen = []
+        for dim in dimensions:
+            group = [f for f in flavors if f["dimension"] == dim or (len(dimensions) == 1 and f["dimension"] is None)]
+            if not group:
+                continue
+            pick = next((f for f in group if f["default"]), None)
+            if pick is None:
+                for pref in PREFERRED_FLAVORS:
+                    pick = next((f for f in group if f["name"].lower() == pref), None)
+                    if pick:
+                        break
+            chosen.append((pick or group[0])["name"])
+        if chosen:
+            variant = chosen[0] + "".join(_cap(c) for c in chosen[1:]) + "Debug"
+        dimensions = [d for d in dimensions if d is not None]
+    return {"dimensions": dimensions, "flavors": flavors, "variant": variant}
+
+
+def _catalog_versions(catalog_text):
+    # type: (str) -> Dict[str, str]
+    m = re.search(r"(?ms)^\[versions\]\s*$(.*?)(?=^\[|\Z)", catalog_text)
+    if not m:
+        return {}
+    return dict(re.findall(r"(?m)^\s*([A-Za-z0-9_.\-]+)\s*=\s*[\"']([^\"']+)[\"']", m.group(1)))
+
+
+def _resolve_number(expr, versions):
+    # type: (str, Dict[str, str]) -> Optional[str]
+    expr = expr.strip()
+    num = re.match(r"(\d+)", expr)
+    if num:
+        return num.group(1)
+    ref = re.search(r"libs\.versions\.([\w.]+?)\.get\(", expr)
+    if ref:
+        wanted = ref.group(1).lower()
+        for key, value in versions.items():
+            if re.sub(r"[-_.]", ".", key).lower() == wanted and value.isdigit():
+                return value
+    return None
+
+
+def _sdk_level(texts, names, versions):
+    # type: (List[str], Tuple[str, ...], Dict[str, str]) -> Optional[str]
+    pattern = r"\b(?:%s)\b\s*(?:=|\(|[ \t])\s*([^\n)]+)" % "|".join(names)
+    for text in texts:
+        for expr in re.findall(pattern, _strip_comments(text)):
+            value = _resolve_number(expr, versions)
+            if value:
+                return value
+    for key, value in versions.items():
+        flat = re.sub(r"[-_.]", "", key).lower()
+        if value.isdigit() and any(flat.endswith(n.replace("Version", "").lower()) for n in names):
+            return value
+    return None
+
+
+def _catalog_version(versions, keys):
+    # type: (Dict[str, str], Tuple[str, ...]) -> Optional[str]
+    norm = {re.sub(r"[-_.]", "", k).lower(): v for k, v in versions.items()}
+    for key in keys:
+        if key in norm:
+            return norm[key]
+    return None
+
+
+def _first_group(pattern, text):
+    # type: (str, str) -> Optional[str]
+    m = re.search(pattern, text)
+    return m.group(1) if m else None
+
+
+def _catalog_plugin_version(catalog_text, versions, plugin_ids):
+    # type: (str, Dict[str, str], Tuple[str, ...]) -> Optional[str]
+    for pid in plugin_ids:
+        line = _first_group(r"(?m)^[^\n#]*id\s*=\s*[\"']%s[\"']([^\n]*)$" % re.escape(pid), catalog_text)
+        if line is None:
+            continue
+        inline = _first_group(r"version\s*=\s*[\"']([^\"']+)[\"']", line)
+        if inline:
+            return inline
+        ref = _first_group(r"version\.ref\s*=\s*[\"']([^\"']+)[\"']", line)
+        if ref and ref in versions:
+            return versions[ref]
+    return None
+
+
+def detect_build_facts(root, texts, catalog_text):
+    # type: (str, List[str], str) -> Dict
+    versions = _catalog_versions(catalog_text)
+    blob = "\n".join(texts + [catalog_text])
+    facts = {
+        "min_sdk": _sdk_level(texts, ("minSdk", "minSdkVersion"), versions),
+        "target_sdk": _sdk_level(texts, ("targetSdk", "targetSdkVersion"), versions),
+        "compile_sdk": _sdk_level(texts, ("compileSdk", "compileSdkVersion"), versions),
+        "jdk": None, "agp": None, "kotlin": None, "gradle": None, "compose_bom": None,
+    }  # type: Dict
+    jdk = (re.search(r"jvmToolchain\s*\(\s*(\d+)", blob)
+           or re.search(r"JavaLanguageVersion\.of\(\s*(\d+)", blob)
+           or re.search(r"JavaVersion\.VERSION_(?:1_)?(\d+)", blob)
+           or re.search(r"JvmTarget\.JVM_(?:1_)?(\d+)", blob)
+           or re.search(r"jvmTarget\s*=\s*[\"'](?:1\.)?(\d+)", blob))
+    if jdk:
+        facts["jdk"] = jdk.group(1)
+    facts["agp"] = (
+        _catalog_version(versions, ("agp", "androidgradleplugin", "androidgradle", "androidplugin", "androidtoolsbuild"))
+        or _catalog_plugin_version(catalog_text, versions, ("com.android.application", "com.android.library"))
+        or _first_group(r"(?:com\.android\.tools\.build:gradle:|[\"']com\.android\.(?:application|library)[\"']\s*\)?\s*version\s*[\"'])([\d.]+)", blob))
+    facts["kotlin"] = (
+        _catalog_version(versions, ("kotlin", "kotlinversion", "kotlinlang"))
+        or _catalog_plugin_version(catalog_text, versions, ("org.jetbrains.kotlin.android", "org.jetbrains.kotlin.multiplatform", "org.jetbrains.kotlin.jvm"))
+        or _first_group(r"(?:kotlin-gradle-plugin:|kotlin\([\"'](?:android|jvm|multiplatform)[\"']\)\s*version\s*[\"']|[\"']org\.jetbrains\.kotlin\.(?:android|jvm|multiplatform)[\"']\s*\)?\s*version\s*[\"'])([\w.\-]+)", blob))
+    facts["compose_bom"] = (
+        _catalog_version(versions, ("composebom", "androidxcomposebom"))
+        or _first_group(r"compose-bom:([\d.]+)", blob))
+    wrapper = _read(os.path.join(root, "gradle", "wrapper", "gradle-wrapper.properties"))
+    gm = re.search(r"gradle-([\d.]+(?:-rc-\d+)?)-(?:bin|all)\.zip", wrapper)
+    if gm:
+        facts["gradle"] = gm.group(1)
+    return facts
+
+
 def detect(root):
     # type: (str) -> Dict
     root = os.path.abspath(root)
@@ -201,27 +379,35 @@ def detect(root):
         module_paths = [":app"]
 
     corpus = [settings_text, _read(root_build) if root_build else ""]
-    if info["version_catalog"]:
-        corpus.append(_read(os.path.join(root, "gradle", "libs.versions.toml")))
+    catalog_text = _read(os.path.join(root, "gradle", "libs.versions.toml")) if info["version_catalog"] else ""
+    corpus.append(catalog_text)
+    logic_texts = []  # type: List[str]
     if info["build_logic"]:
         for path in _walk_files(os.path.join(root, info["build_logic"]), (".kt", ".kts", ".gradle", ".toml")):
-            corpus.append(_read(path))
+            logic_texts.append(_read(path))
+    corpus += logic_texts
+    module_texts = {}  # type: Dict[str, str]
 
     for path in module_paths:
         mdir = _module_dir(root, path)
         build = _first_existing(mdir, ("build.gradle.kts", "build.gradle"))
         text = _read(build) if build else ""
         corpus.append(text)
+        module_texts[path] = text
         mtype = classify_module(text) if build else "missing"
         if mtype == "unknown" and path.split(":")[-1] == "app":
             mtype = "application"
         layouts = _has_layouts(mdir)
         info["has_layouts"] = info["has_layouts"] or layouts
+        flavors = parse_flavors(text) if mtype in ("application", "library") else {"dimensions": [], "flavors": [], "variant": "debug"}
         info["modules"].append({
             "path": path,
             "dir": os.path.relpath(mdir, root),
             "type": mtype,
             "has_layouts": layouts,
+            "flavors": [f["name"] for f in flavors["flavors"]],
+            "flavor_dimensions": flavors["dimensions"],
+            "variant": flavors["variant"],
         })
 
     apps = [m["path"] for m in info["modules"] if m["type"] == "application"]
@@ -229,6 +415,13 @@ def detect(root):
         info["app_module"] = ":app"
     elif apps:
         info["app_module"] = apps[0]
+
+    app_text = module_texts.get(info["app_module"] or "", "")
+    other_texts = [t for p, t in module_texts.items() if p != info["app_module"]]
+    info["build"] = detect_build_facts(root, [app_text] + logic_texts + other_texts + [corpus[1]], catalog_text)
+    app_entry = next((m for m in info["modules"] if m["path"] == info["app_module"]), None)
+    info["variant"] = app_entry["variant"] if app_entry else "debug"
+    info["flavors_in_build_logic"] = bool(re.search(r"productFlavors|flavorDimensions", "\n".join(logic_texts))) and not (app_entry and app_entry["flavors"])
 
     blob = "\n".join(corpus)
     features = {}
@@ -278,18 +471,40 @@ def frontmatter_value(frontmatter, key):
     return m.group(1).strip() if m else ""
 
 
+def _module(info, path):
+    # type: (Dict, Optional[str]) -> Optional[Dict]
+    return next((m for m in info["modules"] if m["path"] == path), None)
+
+
+def module_test_task(module):
+    # type: (Optional[Dict]) -> str
+    if module is None:
+        return "testDebugUnitTest"
+    if module["type"] == "kmp":
+        return "allTests"
+    if module["type"] == "jvm":
+        return "test"
+    return "test%sUnitTest" % _cap(module.get("variant") or "debug")
+
+
 def commands(info):
     # type: (Dict) -> Dict[str, str]
     g = info["gradle"]
     app = info["app_module"]
     f = info["features"]
+    v = _cap(info.get("variant") or "debug")
     cmds = {}  # type: Dict[str, str]
-    cmds["build"] = "%s %s:assembleDebug" % (g, app) if app else "%s assemble" % g
+    cmds["build"] = "%s %s:assemble%s" % (g, app, v) if app else "%s assemble" % g
     if f.get("kmp"):
         cmds["test"] = "%s allTests" % g
     else:
-        cmds["test"] = "%s testDebugUnitTest" % g
-    lint = ["%s %s:lintDebug" % (g, app) if app else "%s lint" % g]
+        android = [m for m in info["modules"] if m["type"] in ("application", "library")]
+        flavored = [m for m in android if m.get("variant", "debug") != "debug"]
+        parts = ["%s:%s" % (m["path"], module_test_task(m)) for m in flavored]
+        if len(flavored) < len(android) or not android:
+            parts.append("testDebugUnitTest")
+        cmds["test"] = "%s %s" % (g, " ".join(parts))
+    lint = ["%s %s:lint%s" % (g, app, v) if app else "%s lint" % g]
     if "ktlint" in info["lint_tools"]:
         lint.append("%s ktlintCheck" % g)
     if "detekt" in info["lint_tools"]:
@@ -305,7 +520,7 @@ def commands(info):
     if fmt:
         cmds["format"] = " && ".join(fmt)
     if app and f.get("android"):
-        cmds["instrumented"] = "%s %s:connectedDebugAndroidTest" % (g, app)
+        cmds["instrumented"] = "%s %s:connected%sAndroidTest" % (g, app, v)
     return cmds
 
 
@@ -359,6 +574,13 @@ def render_context(info, preset):
         stack.append("- Data: %s" % ", ".join(data))
     if f.get("navigation_compose") or f.get("navigation_fragment"):
         stack.append("- Navigation: %s" % ("Navigation Compose" if f.get("navigation_compose") else "Navigation component (Fragments)"))
+    b = info.get("build") or {}
+    sdk = ", ".join("%s %s" % (label, b[key]) for label, key in (("minSdk", "min_sdk"), ("targetSdk", "target_sdk"), ("compileSdk", "compile_sdk")) if b.get(key))
+    if sdk:
+        stack.append("- Android: %s%s" % (sdk, ". Guard APIs above minSdk with `Build.VERSION.SDK_INT` checks" if b.get("min_sdk") else ""))
+    tools = ", ".join("%s %s" % (label, b[key]) for label, key in (("Gradle", "gradle"), ("AGP", "agp"), ("Kotlin", "kotlin"), ("JDK", "jdk"), ("Compose BOM", "compose_bom")) if b.get(key))
+    if tools:
+        stack.append("- Toolchain: %s" % tools)
     stack.append("- Build: Gradle %s DSL%s%s" % (
         "Kotlin" if info["dsl"] == "kts" else "Groovy",
         ", version catalog" if info["version_catalog"] else "",
@@ -377,14 +599,28 @@ def render_context(info, preset):
         "| --- | --- |",
         "| Build (debug) | `%s` |" % cmds["build"],
         "| Unit tests | `%s` |" % cmds["test"],
-        "| One module's tests | `%s %s:%s` |" % (g, example, "allTests" if (f.get("kmp") and not info["app_module"]) else "testDebugUnitTest"),
+        "| One module's tests | `%s %s:%s` |" % (g, example, module_test_task(_module(info, example))),
         "| Lint | `%s` |" % cmds["lint"],
     ]
     if "format" in cmds:
         cmd_lines.append("| Format | `%s` |" % cmds["format"])
     if "instrumented" in cmds:
         cmd_lines.append("| Instrumented tests (needs a device; only when asked) | `%s` |" % cmds["instrumented"])
-    cmd_lines.append("| Dependencies of a module | `%s %s:dependencies --configuration debugRuntimeClasspath` |" % (g, info["app_module"] or example))
+    cmd_lines.append("| Dependencies of a module | `%s %s:dependencies --configuration %sRuntimeClasspath` |" % (
+        g, info["app_module"] or example, info.get("variant") or "debug"))
+
+    # Build variants
+    variants = []
+    for m in info["modules"]:
+        if m.get("flavors"):
+            dims = m.get("flavor_dimensions") or []
+            variants.append("- `%s` has product flavors %s%s. Commands use the `%s` variant. Build other flavors or release variants only when asked." % (
+                m["path"], ", ".join("`%s`" % x for x in m["flavors"]),
+                " (dimension%s %s)" % ("s" if len(dims) > 1 else "", ", ".join("`%s`" % d for d in dims)) if dims else "",
+                m["variant"]))
+    if info.get("flavors_in_build_logic"):
+        variants.append("- Product flavors are configured in the convention plugins (`%s/`). TODO: check the variant name and update the commands above (for example `assembleDemoDebug`)." % info["build_logic"])
+    variants_note = ("### Build variants\n\n" + "\n".join(variants)) if variants else ""
 
     # Architecture
     arch = [
@@ -488,6 +724,7 @@ def render_context(info, preset):
         "PROJECT_MAP": project_map,
         "STACK": "\n".join(stack),
         "COMMANDS": "\n".join(cmd_lines),
+        "VARIANTS_NOTE": variants_note,
         "ARCHITECTURE": "\n".join(arch),
         "PRESET_SECTION": preset_text,
         "SETTINGS_FILE": info["settings_file"],
@@ -678,6 +915,10 @@ def summarize(info):
                        ("Koin", "koin"), ("Room", "room"), ("SQLDelight", "sqldelight")):
         if f.get(key):
             bits.append(label)
+    if info.get("variant", "debug") != "debug":
+        bits.append("variant %s" % info["variant"])
+    if (info.get("build") or {}).get("min_sdk"):
+        bits.append("minSdk %s" % info["build"]["min_sdk"])
     if info["version_catalog"]:
         bits.append("version catalog")
     if info["build_logic"]:

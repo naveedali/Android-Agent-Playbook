@@ -32,6 +32,8 @@ Every team ends up writing its own `AGENTS.md` from scratch. This project gives 
 `install` reads your Gradle files (no Gradle run needed) and detects:
 
 - Kotlin or Groovy DSL, the module list and each module's type, and convention plugins (`build-logic/`, `buildSrc/`)
+- product flavors and dimensions, so commands use a real variant (`assembleDevDebug`, not `assembleDebug`)
+- `minSdk`/`targetSdk`/`compileSdk`, and the Gradle, AGP, Kotlin, JDK and Compose BOM versions
 - Compose, XML Views and View Binding, Kotlin Multiplatform, Compose Multiplatform
 - Hilt or Koin, Room or SQLDelight, coroutines, Navigation, KSP and kapt
 - test libraries (JUnit 4/5, MockK, Mockito, Turbine, Robolectric, Compose UI test, and more), ktlint, detekt and Spotless
@@ -49,6 +51,8 @@ Then it writes these files with your project's real commands filled in:
 | `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md`, plus the key rules |
 
 Pick agents with `--agents claude,codex,cursor,copilot` (default: all).
+
+See [`examples/`](examples/) for the generated files on a Compose + Hilt app, an app with product flavors, a legacy Views app and a KMP project.
 
 ### Playbooks and commands
 

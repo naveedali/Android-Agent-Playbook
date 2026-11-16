@@ -45,6 +45,31 @@ tests/
 - Never write outside the marker block in a file that already exists.
 - Every behavior change needs a test.
 
+## Examples
+
+`examples/` holds the generated output for each test fixture. After changing a template or the detection, regenerate it and commit the result:
+
+```bash
+python scripts/generate_examples.py
+```
+
+CI fails if `examples/` is stale.
+
+## Releasing
+
+Releases are published to PyPI from GitHub Actions with [trusted publishing](https://docs.pypi.org/trusted-publishers/), so no API token is stored in the repo.
+
+One-time setup:
+
+1. On PyPI, add a pending trusted publisher for project `android-agent-playbook`: owner `naveedali`, repository `Android-Agent-Playbook`, workflow `release.yml`, environment `pypi`.
+2. In the GitHub repo settings, create an environment named `pypi` (optionally with required reviewers).
+
+Each release:
+
+1. Bump `__version__` in `src/android_agent_playbook/__init__.py`, move the `Unreleased` notes in `CHANGELOG.md` under the new version, and run `python scripts/generate_examples.py`.
+2. Merge to `master`, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
+3. The `Release` workflow checks that the tag matches `__version__`, runs the tests, builds, publishes to PyPI and creates a GitHub release.
+
 ## Pull requests
 
 Use one branch per change, with a short description of what changed and how you tested it. If you can, include the before/after of a real agent run.

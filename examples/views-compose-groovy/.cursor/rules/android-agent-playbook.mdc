@@ -1,0 +1,15 @@
+---
+description: Android project rules from android-agent-playbook
+alwaysApply: true
+---
+<!-- android-agent-playbook:start -->
+Follow the repository rules in `AGENTS.md` at the project root: commands, architecture, module rules, the Never touch list and the Done checklist.
+
+Before finishing any change, run:
+
+- `./gradlew :app:assembleDebug`
+- `./gradlew testDebugUnitTest`
+- `./gradlew :app:lintDebug`
+
+Playbooks for common tasks live in `.agents/skills/`. The matching commands are `/add-screen`, `/add-feature-module`, `/migrate-to-compose`, `/write-tests`, `/fix-build`.
+<!-- android-agent-playbook:end -->
