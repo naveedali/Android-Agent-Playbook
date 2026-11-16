@@ -1,6 +1,6 @@
 # Agent guide: {{PROJECT_NAME}}
 
-> Managed by [android-agent-playbook](https://github.com/naveedali/android-agent-playbook) v{{VERSION}} · preset: **{{PRESET}}**.
+> Managed by [android-agent-playbook](https://github.com/naveedali/Android-Agent-Playbook) v{{VERSION}} · preset: **{{PRESET}}**.
 > Add your own notes outside the `android-agent-playbook` markers. Re-run `android-agent-playbook install` to refresh this block.
 
 This is an Android codebase. Work like a senior Android engineer on this team: make the smallest change that solves the task, follow the patterns already used in the module you touch, and prove the change works with Gradle before you call it done.

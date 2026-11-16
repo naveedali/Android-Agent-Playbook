@@ -11,8 +11,7 @@ android-agent-playbook install --dry-run   # see what it would write
 android-agent-playbook install
 ```
 
-> Status: v0.1.0, early. Not on PyPI yet. Until it is, install from GitHub:
-> `pipx install git+https://github.com/naveedali/android-agent-playbook`
+> Status: early (v0.2). Also runs without installing: `uvx android-agent-playbook install --dry-run`
 
 <!-- TODO: before/after demo GIF: the same "add a settings screen" prompt with and without the playbook -->
 
@@ -52,7 +51,7 @@ Then it writes these files with your project's real commands filled in:
 
 Pick agents with `--agents claude,codex,cursor,copilot` (default: all).
 
-See [`examples/`](examples/) for the generated files on a Compose + Hilt app, an app with product flavors, a legacy Views app and a KMP project.
+See [`examples/`](https://github.com/naveedali/Android-Agent-Playbook/tree/master/examples) for the generated files on a Compose + Hilt app, an app with product flavors, a legacy Views app and a KMP project.
 
 ### Playbooks and commands
 
@@ -110,7 +109,8 @@ android-agent-playbook uninstall [PATH] [--dry-run] [--diff]
 
 ## Roadmap
 
-- v0.1: rules, five playbooks, installer, three presets (this release)
+- v0.1: rules, five playbooks, installer, three presets
+- v0.2: product flavors, SDK and toolchain versions, release pipeline, examples (this release)
 - Validate on real projects, starting with an Android Compose app, then a legacy Views app and a KMP app
 - Next: a Gradle output trimmer so agents see the first real error, and an Android build/emulator MCP server
 
@@ -120,8 +120,8 @@ android-agent-playbook uninstall [PATH] [--dry-run] [--diff]
 
 ## Contributing
 
-New presets and better playbooks are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+New presets and better playbooks are very welcome. See [CONTRIBUTING.md](https://github.com/naveedali/Android-Agent-Playbook/blob/master/CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/naveedali/Android-Agent-Playbook/blob/master/LICENSE)

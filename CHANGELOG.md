@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-11-16)
 
 - CI runs on `master` (and `main`), and checks that `examples/` is up to date
 - Release workflow: tag `v*` publishes to PyPI with trusted publishing and creates a GitHub release
@@ -9,7 +9,7 @@
 - Stack section now lists minSdk, targetSdk and compileSdk (with a reminder to guard newer APIs), plus Gradle, AGP, Kotlin, JDK and Compose BOM versions read from the catalog, build files and Gradle wrapper
 - KMP and JVM modules use `allTests` and `test` in the per-module test command
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-11)
 
 - `install`, `detect` and `uninstall` commands with marker-based, re-runnable injection, `--dry-run` and `--diff`
 - Stack detection from Gradle files: DSL, modules, convention plugins, Compose/Views/KMP, Hilt/Koin, Room/SQLDelight, test and lint tooling
