@@ -24,8 +24,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/naveedali/android-agent-playbook"
-Issues = "https://github.com/naveedali/android-agent-playbook/issues"
+Homepage = "https://github.com/naveedali/Android-Agent-Playbook"
+Issues = "https://github.com/naveedali/Android-Agent-Playbook/issues"
 
 [project.scripts]
 android-agent-playbook = "android_agent_playbook.cli:main"

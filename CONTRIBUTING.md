@@ -7,7 +7,7 @@ Thanks for helping make AI agents better Android engineers.
 No dependencies are needed beyond Python 3.8+.
 
 ```bash
-git clone https://github.com/naveedali/android-agent-playbook
+git clone https://github.com/naveedali/Android-Agent-Playbook
 cd android-agent-playbook
 PYTHONPATH=src python -m unittest discover -s tests -t .
 PYTHONPATH=src python -m android_agent_playbook install --dry-run --diff /path/to/an/android/project

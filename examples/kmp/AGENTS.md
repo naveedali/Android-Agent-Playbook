@@ -1,7 +1,7 @@
 <!-- android-agent-playbook:start -->
 # Agent guide: NotesKmp
 
-> Managed by [android-agent-playbook](https://github.com/naveedali/android-agent-playbook) v0.1.0 · preset: **kmp**.
+> Managed by [android-agent-playbook](https://github.com/naveedali/Android-Agent-Playbook) v0.2.0 · preset: **kmp**.
 > Add your own notes outside the `android-agent-playbook` markers. Re-run `android-agent-playbook install` to refresh this block.
 
 This is an Android codebase. Work like a senior Android engineer on this team: make the smallest change that solves the task, follow the patterns already used in the module you touch, and prove the change works with Gradle before you call it done.
